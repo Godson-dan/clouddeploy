@@ -1,0 +1,1 @@
+export const demoManifest = `# DEMO PREVIEW — example only; NOT fetched from your repository\nversion: 1\nservices:\n  web:\n    build: npm run build\n    start: npm run start\n    healthcheck: /health\n`;
