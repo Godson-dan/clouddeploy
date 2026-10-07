@@ -21,11 +21,13 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/db ./db
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "node dist/migrate.js && npm start"]
+CMD ["sh", "-c", "node dist/migrate.js && node dist/server.js"]
