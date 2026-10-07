@@ -10,7 +10,7 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  IMAGE_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }}
+  IMAGE_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }} 
 
 jobs:
   build-and-scan:

@@ -1,23 +1,24 @@
-# ---------- Build stage ----------
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
 RUN npm ci
 
 COPY . .
-
 RUN npm run build
 
 
-# ---------- Production stage ----------
 FROM node:20-slim AS production
 
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+# Update Debian security packages
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 
