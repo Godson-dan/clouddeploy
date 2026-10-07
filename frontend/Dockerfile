@@ -1,10 +1,8 @@
-# ---------- Build stage ----------
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
 RUN npm ci
 
 COPY . .
@@ -15,8 +13,12 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 
-# ---------- Production stage ----------
 FROM nginx:alpine
+
+# Update Alpine security packages
+RUN apk update \
+    && apk upgrade \
+    && rm -rf /var/cache/apk/*
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
