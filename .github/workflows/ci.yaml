@@ -1,4 +1,4 @@
-name: Build and Scan Images
+name: Build, Scan, and Deploy
 
 on:
   push:
@@ -10,16 +10,47 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  IMAGE_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }} 
+  IMAGE_PREFIX: temigodson
 
 jobs:
   build-and-scan:
     name: Build and Scan Docker Images
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: clouddeploy_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d clouddeploy_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/clouddeploy_test
+        run: npm test
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -38,6 +69,7 @@ jobs:
         run: |
           docker build \
             -t $REGISTRY/$IMAGE_PREFIX/clouddeploy-backend:${{ steps.meta.outputs.tag }} \
+            -t $REGISTRY/$IMAGE_PREFIX/clouddeploy-backend:master \
             ./backend
 
       - name: Build frontend image
@@ -45,6 +77,7 @@ jobs:
           docker build \
             --build-arg VITE_API_URL=/api \
             -t $REGISTRY/$IMAGE_PREFIX/clouddeploy-frontend:${{ steps.meta.outputs.tag }} \
+            -t $REGISTRY/$IMAGE_PREFIX/clouddeploy-frontend:master \
             ./frontend
 
       - name: Scan backend image
@@ -69,8 +102,56 @@ jobs:
         run: |
           docker push \
             $REGISTRY/$IMAGE_PREFIX/clouddeploy-backend:${{ steps.meta.outputs.tag }}
+          docker push \
+            $REGISTRY/$IMAGE_PREFIX/clouddeploy-backend:master
 
       - name: Push frontend image
         run: |
           docker push \
             $REGISTRY/$IMAGE_PREFIX/clouddeploy-frontend:${{ steps.meta.outputs.tag }}
+          docker push \
+            $REGISTRY/$IMAGE_PREFIX/clouddeploy-frontend:master
+
+  deploy-staging:
+    name: Deploy staging to EKS
+    needs: build-and-scan
+    if: github.ref == 'refs/heads/master'
+    # The EKS public API is restricted to trusted CIDRs. Register a self-hosted
+    # Linux runner on the trusted network with the `clouddeploy-staging` label.
+    runs-on: [self-hosted, linux, x64, clouddeploy-staging]
+    concurrency:
+      group: clouddeploy-staging
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: CloudDeployStaging-${{ github.run_id }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.36.0
+
+      - name: Configure EKS access
+        run: aws eks update-kubeconfig --region us-east-1 --name clouddeploy-eks
+
+      - name: Deploy reviewed commit images
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_TAG="${IMAGE_TAG:0:7}"
+          sed -i "s/newTag: master/newTag: ${IMAGE_TAG}/g" k8s/kustomization.yaml
+          kubectl apply -k k8s
+          kubectl rollout status deployment/clouddeploy-backend --namespace clouddeploy --timeout=10m
+          kubectl rollout status deployment/clouddeploy-frontend --namespace clouddeploy --timeout=10m
+          kubectl get ingress clouddeploy --namespace clouddeploy

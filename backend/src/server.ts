@@ -4,11 +4,14 @@ import cors from 'cors';
 import router from './routes.js';
 import { HttpError } from './errors.js';
 import { pool } from './db.js';
+import { assertEnvironmentEncryptionKey } from './environment-crypto.js';
 
+assertEnvironmentEncryptionKey();
 const app = express();
 app.disable('x-powered-by');
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(express.json({ limit: '128kb' }));
+app.get('/api/live', (_req, res) => { res.json({ status: 'ok' }); });
 app.get('/api/health', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'up' }); }
   catch { res.status(503).json({ status: 'degraded', database: 'down' }); }

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { pool, withTransaction } from './db.js';
 import { HttpError } from './errors.js';
+import { decryptEnvironmentValue, encryptEnvironmentValue } from './environment-crypto.js';
 import type { Action, Deployment, DeploymentStatus, EnvironmentVariable, LogLine, Project, Status } from './models.js';
 
 export interface NewDeployment {
@@ -103,13 +104,13 @@ export class PgRepository implements Repository {
   }
   async environment(projectId: string) {
     const { rows } = await pool.query<EnvironmentVariable>('SELECT key, value, secret FROM environment_variables WHERE project_id = $1 ORDER BY seq', [projectId]);
-    return rows;
+    return rows.map(row => ({ ...row, value: decryptEnvironmentValue(row.value) }));
   }
   async upsertEnvironmentVariable(projectId: string, entry: EnvironmentVariable) {
     await pool.query(
       `INSERT INTO environment_variables (project_id, key, value, secret) VALUES ($1, $2, $3, $4)
        ON CONFLICT (project_id, key) DO UPDATE SET value = EXCLUDED.value, secret = EXCLUDED.secret`,
-      [projectId, entry.key, entry.value, entry.secret],
+      [projectId, entry.key, encryptEnvironmentValue(entry.value), entry.secret],
     );
   }
 }

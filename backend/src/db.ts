@@ -8,7 +8,7 @@ export const pool = new pg.Pool({
   connectionString,
   max: Number(process.env.DATABASE_POOL_MAX || 10),
   // Set DATABASE_SSL=true for hosted databases (e.g. AWS RDS) that require TLS.
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
 });
 pool.on('error', error => console.error('Unexpected PostgreSQL pool error', error));
 

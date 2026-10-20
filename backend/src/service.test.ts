@@ -1,9 +1,12 @@
+import 'dotenv/config';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 // Tests run against TEST_DATABASE_URL (falls back to DATABASE_URL). Use a throwaway database.
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+// Fixed test-only key so data in a persistent test database remains decryptable between runs.
+process.env.ENVIRONMENT_ENCRYPTION_KEY ||= '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
 const { pool } = await import('./db.js');
 const { CloudService } = await import('./service.js');
 const { HttpError } = await import('./errors.js');
@@ -36,6 +39,11 @@ test('secrets are masked in writes and reads, and saving an existing key replace
   const { id } = await newProject();
   await service.saveEnvironment(id, { key: 'FIRST', value: 'plain', secret: false });
   const result = await service.saveEnvironment(id, { key: 'TEST_SECRET', value: 'never-return-this', secret: true });
+  const stored = await pool.query<{ value: string }>(
+    'SELECT value FROM environment_variables WHERE project_id = $1 AND key = $2', [id, 'TEST_SECRET'],
+  );
+  assert.match(stored.rows[0]!.value, /^enc:v1:/);
+  assert.notEqual(stored.rows[0]!.value, 'never-return-this');
   assert.equal(result.find(e => e.key === 'TEST_SECRET')?.value, '••••••••');
   assert.equal((await service.environment(id)).find(e => e.key === 'TEST_SECRET')?.value, '••••••••');
   const replaced = await service.saveEnvironment(id, { key: 'FIRST', value: 'changed', secret: false });

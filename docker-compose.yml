@@ -8,6 +8,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: clouddeploy
     ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/db/init-test-db.sh:/docker-entrypoint-initdb.d/10-create-test-database.sh:ro
 volumes:
   pgdata:
