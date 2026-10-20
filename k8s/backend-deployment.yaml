@@ -32,6 +32,8 @@ spec:
               value: "4000"
             - name: DATABASE_SSL
               value: "true"
+            - name: DATABASE_SSL_CA_FILE
+              value: /app/certs/rds-us-east-1-bundle.pem
             - name: FRONTEND_URL
               value: "https://clouddeploy.name.ng"
             - name: ENVIRONMENT_ENCRYPTION_KEY

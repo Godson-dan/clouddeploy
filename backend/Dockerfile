@@ -28,6 +28,7 @@ RUN npm ci --omit=dev \
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/db ./db
+COPY certs/rds-us-east-1-bundle.pem ./certs/rds-us-east-1-bundle.pem
 
 EXPOSE 4000
 
