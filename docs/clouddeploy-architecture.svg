@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">CloudDeploy deployment architecture</title>
+  <desc id="desc">GitHub Actions builds, tests, scans and publishes Docker images, then deploys to AWS EKS through a self-hosted runner using GitHub OIDC. Users reach an AWS Application Load Balancer through Cloudflare DNS and Truehost domain registration. EKS serves a React frontend through Nginx and an Express API connected over TLS to private Amazon RDS PostgreSQL. CloudWatch collects infrastructure and application observability.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M1,1 L11,6 L1,11 z" fill="#75baff"/></marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M1,1 L11,6 L1,11 z" fill="#4adea2"/></marker>
+    <style>
+      .bg{fill:#0b1424}.panel{fill:#111f33;stroke:#34506f;stroke-width:2}.aws{fill:#101d2d;stroke:#f5a623;stroke-width:3;stroke-dasharray:10 7}.node{fill:#172b44;stroke:#54779c;stroke-width:2}.accent{fill:#192b3c;stroke:#4adea2;stroke-width:2}.title{font:700 34px Arial,sans-serif;fill:#f2f7ff}.subtitle{font:18px Arial,sans-serif;fill:#a9bfd8}.heading{font:700 21px Arial,sans-serif;fill:#f4f8ff}.label{font:17px Arial,sans-serif;fill:#d7e5f5}.small{font:15px Arial,sans-serif;fill:#a9bfd8}.awslabel{font:700 19px Arial,sans-serif;fill:#ffc45c}.flow{fill:none;stroke:#75baff;stroke-width:4;marker-end:url(#arrow)}.deploy{fill:none;stroke:#4adea2;stroke-width:4;stroke-dasharray:10 7;marker-end:url(#arrowGreen)}.soft{fill:none;stroke:#6687a8;stroke-width:2;stroke-dasharray:5 6}
+    </style>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <text class="title" x="60" y="66">CloudDeploy — Target Deployment Architecture</text>
+  <text class="subtitle" x="60" y="101">Automated container delivery to AWS EKS with managed PostgreSQL and CloudWatch observability</text>
+
+  <!-- Delivery pipeline -->
+  <rect class="panel" x="60" y="140" width="1480" height="205" rx="18"/>
+  <text class="heading" x="88" y="178">CI/CD delivery</text>
+  <rect class="node" x="95" y="208" width="230" height="92" rx="12"/>
+  <text class="heading" x="121" y="245">GitHub repository</text><text class="small" x="121" y="273">Source and workflow</text>
+  <rect class="node" x="405" y="208" width="300" height="92" rx="12"/>
+  <text class="heading" x="431" y="241">GitHub Actions</text><text class="small" x="431" y="269">Tests · Docker build · Trivy scan</text><text class="small" x="431" y="290">Push-triggered workflow on master</text>
+  <rect class="node" x="790" y="208" width="250" height="92" rx="12"/>
+  <text class="heading" x="818" y="245">Docker Hub</text><text class="small" x="818" y="273">Frontend and backend images</text>
+  <rect class="accent" x="1130" y="208" width="350" height="92" rx="12"/>
+  <text class="heading" x="1157" y="241">Self-hosted deployment runner</text><text class="small" x="1157" y="269">kubectl deploys reviewed image tags</text>
+  <path class="flow" d="M325 254 H395"/><path class="flow" d="M705 254 H780"/><path class="flow" d="M1040 254 H1120"/>
+  <text class="small" x="1073" y="191">GitHub OIDC → least-privilege AWS role</text>
+
+  <!-- User traffic -->
+  <rect class="panel" x="60" y="400" width="260" height="220" rx="18"/>
+  <text class="heading" x="87" y="442">Users</text><text class="label" x="87" y="477">Browser over HTTPS</text>
+  <rect class="node" x="87" y="505" width="205" height="78" rx="11"/>
+  <text class="heading" x="108" y="538">clouddeploy.name.ng</text><text class="small" x="108" y="562">Domain registered at Truehost</text>
+  <rect class="node" x="390" y="400" width="260" height="220" rx="18"/>
+  <text class="heading" x="417" y="442">Cloudflare DNS</text><text class="label" x="417" y="478">DNS-only record</text><text class="small" x="417" y="512">Resolves app hostname to</text><text class="small" x="417" y="536">AWS load balancer</text>
+  <rect class="node" x="715" y="400" width="260" height="220" rx="18"/>
+  <text class="heading" x="742" y="442">AWS Application</text><text class="heading" x="742" y="469">Load Balancer</text><text class="label" x="742" y="510">Ingress · TLS certificate</text><text class="small" x="742" y="540">Host-based routing for</text><text class="small" x="742" y="564">clouddeploy.name.ng</text>
+  <path class="flow" d="M320 510 H380"/><path class="flow" d="M650 510 H705"/>
+
+  <!-- AWS boundary and services -->
+  <rect class="aws" x="1015" y="385" width="525" height="510" rx="22"/>
+  <text class="awslabel" x="1045" y="425">AWS — us-east-1</text>
+  <rect class="panel" x="1050" y="450" width="455" height="275" rx="16"/>
+  <text class="heading" x="1078" y="487">Amazon EKS · clouddeploy namespace</text>
+  <rect class="node" x="1080" y="520" width="190" height="82" rx="11"/>
+  <text class="heading" x="1100" y="553">Frontend</text><text class="small" x="1100" y="579">React + Nginx</text>
+  <rect class="node" x="1285" y="520" width="190" height="82" rx="11"/>
+  <text class="heading" x="1305" y="553">Backend API</text><text class="small" x="1305" y="579">Node.js + Express</text>
+  <text class="small" x="1080" y="644">Kubernetes Services · Deployments · probes</text>
+  <text class="small" x="1080" y="674">Runtime values supplied from restricted K8s Secrets</text>
+  <path class="flow" d="M975 510 H1038"/><path class="flow" d="M1270 561 H1277"/>
+  <text class="small" x="1065" y="749">/ → frontend</text><text class="small" x="1227" y="749">/api → backend</text>
+
+  <rect class="panel" x="1060" y="780" width="250" height="83" rx="13"/>
+  <text class="heading" x="1084" y="815">Amazon RDS</text><text class="small" x="1084" y="841">Private PostgreSQL · TLS</text>
+  <rect class="panel" x="1330" y="780" width="180" height="83" rx="13"/>
+  <text class="heading" x="1350" y="815">CloudWatch</text><text class="small" x="1350" y="841">Logs and metrics</text>
+  <path class="flow" d="M1380 602 V740 H1190 V770"/>
+  <path class="soft" d="M1380 602 V752 H1420 V770"/>
+  <text class="small" x="60" y="680">Blue arrows: user traffic</text><path class="flow" d="M60 705 H160"/>
+  <text class="small" x="60" y="755">Green dashed arrows: deployment</text><path class="deploy" d="M60 780 H160"/>
+  <path class="deploy" d="M1305 300 V370 H1245 V440"/>
+  <text class="small" x="1020" y="927">Vault deferred. GitHub Actions Secrets are for CI/CD credentials, not customer runtime secrets.</text>
+</svg>
